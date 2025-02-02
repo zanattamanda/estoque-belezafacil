@@ -1,0 +1,111 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import axios from "axios";
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [products, setProducts] = useState([]);
+  const [newProduct, setNewProduct] = useState({ name: "", quantity: "" });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProducts();
+    }
+  }, [isAuthenticated]);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/products");
+      setProducts(response.data.products);
+    } catch (error) {
+      console.error("Erro ao buscar produtos", error);
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post("http://localhost:5000/login", { password });
+      if (response.data.success) {
+        setIsAuthenticated(true);
+      } else {
+        alert("Senha incorreta!");
+      }
+    } catch (error) {
+      alert("Erro ao tentar fazer login.");
+    }
+  };
+
+  const handleAddProduct = async () => {
+    try {
+      await axios.post("http://localhost:5000/add-product", newProduct);
+      fetchProducts();
+      setNewProduct({ name: "", quantity: "" });
+    } catch (error) {
+      alert("Erro ao adicionar produto");
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/delete-product/${id}`);
+      fetchProducts();
+    } catch (error) {
+      alert("Erro ao remover produto");
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      {!isAuthenticated ? (
+        <Card className="p-6 w-80">
+          <CardContent>
+            <h2 className="text-xl font-bold mb-4">Login</h2>
+            <input
+              type="password"
+              placeholder="Digite a senha"
+              className="border p-2 w-full mb-4"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button onClick={handleLogin} className="w-full">
+              Entrar
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="w-full max-w-lg">
+          <h1 className="text-2xl font-bold mb-4">Painel de Controle</h1>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Nome do produto"
+              className="border p-2 w-full mb-2"
+              value={newProduct.name}
+              onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Quantidade"
+              className="border p-2 w-full mb-2"
+              value={newProduct.quantity}
+              onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
+            />
+            <Button onClick={handleAddProduct} className="w-full">
+              Adicionar Produto
+            </Button>
+          </div>
+          <ul>
+            {products.map((product) => (
+              <li key={product.id} className="flex justify-between p-2 border mb-2">
+                {product.name} - {product.quantity} unidades
+                <Button onClick={() => handleDeleteProduct(product.id)}>Remover</Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
